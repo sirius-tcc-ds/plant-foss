@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rega de Plantas</title>
+  <style>
+    :root {
+      --bg: #f4f7f2;
+      --surface: #ffffff;
+      --surface-alt: #eef3ea;
+      --text: #1e2923;
+      --muted: #5c6d63;
+      --primary: #2f7d4a;
+      --primary-hover: #25643a;
+      --urgent-bg: #fff3e6;
+      --urgent-border: #f09d38;
+      --urgent-text: #9a4d00;
+      --overdue-bg: #fdecec;
+      --overdue-border: #e05a5a;
+      --overdue-text: #9e1c1c;
+      --ok-bg: #e9f6ee;
+      --ok-text: #1f6b3b;
+      --border: #dde6d8;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px 16px 60px;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .notif-btn {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .notif-btn:hover {
+      background: var(--surface-alt);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .stat-card .num {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .stat-card .label {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 22px;
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 0.9fr 1.2fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: var(--surface);
+      color: var(--text);
+      width: 100%;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: 2px solid rgba(47, 125, 74, 0.25);
+      border-color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 13px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .plant-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .plant-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .plant-card.due-today {
+      background: var(--urgent-bg);
+      border-color: var(--urgent-border);
+      border-left-width: 5px;
+    }
+
+    .plant-card.overdue {
+      background: var(--overdue-bg);
+      border-color: var(--overdue-border);
+      border-left-width: 5px;
+    }
+
+    .plant-info h3 {
+      font-size: 1.08rem;
+      margin-bottom: 4px;
+    }
+
+    .plant-meta {
+      font-size: 0.86rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .badge.ok {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+    }
+
+    .badge.today {
+      background: #ffe0b8;
+      color: var(--urgent-text);
+    }
+
+    .badge.overdue {
+      background: #fad0d0;
+      color: var(--overdue-text);
+    }
+
+    .plant-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-water {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-water:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-delete {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn-delete:hover {
+      color: var(--overdue-text);
+      border-color: var(--overdue-border);
+      background: #fff;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 44px 20px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+    }
+
+    .empty-state strong {
+      display: block;
+      color: var(--text);
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+    }
+
+    .storage-footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .storage-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 11px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .btn-ghost.danger:hover {
+      color: var(--overdue-text);
+      border-color: var(--overdue-border);
+    }
+
+    .status-bar {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-bar.visible {
+      display: flex;
+    }
+
+    .status-bar.confirm-mode {
+      background: var(--overdue-bg);
+      border-color: var(--overdue-border);
+      color: var(--overdue-text);
+    }
+
+    .status-bar-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    @media (max-width: 760px) {
+      .add-form {
+        grid-template-columns: 1fr;
+      }
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Minhas Plantas</h1>
+        <p>Controle de rega salvo localmente no seu navegador</p>
+      </div>
+      <button id="notifBtn" class="notif-btn" type="button">Ativar notificações</button>
+    </header>
+
+    <section class="summary" aria-label="Resumo">
+      <div class="stat-card">
+        <div class="num" id="statUrgent">0</div>
+        <div class="label">Regar hoje ou atrasadas</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statOk">0</div>
+        <div class="label">Em dia</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statTotal">0</div>
+        <div class="label">Total de plantas</div>
+      </div>
+    </section>
+
+    <form id="plantForm" class="add-form">
+      <div class="field">
+        <label for="plantName">Nome da planta</label>
+        <input id="plantName" type="text" placeholder="Ex.: Jiboia, Espada-de-São-Jorge" required />
+      </div>
+      <div class="field">
+        <label for="plantLocation">Ambiente</label>
+        <select id="plantLocation">
+          <option value="Sala">Sala</option>
+          <option value="Varanda">Varanda</option>
+          <option value="Quarto">Quarto</option>
+          <option value="Cozinha">Cozinha</option>
+          <option value="Quintal">Quintal</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="plantInterval">A cada (dias)</label>
+        <input id="plantInterval" type="number" min="1" max="90" value="7" required />
+      </div>
+      <div class="field">
+        <label for="plantLastWatered">Última rega</label>
+        <input id="plantLastWatered" type="date" required />
+      </div>
+      <button type="submit" class="btn-primary">+ Adicionar</button>
+    </form>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all" type="button">Todas</button>
+      <button class="filter-btn" data-filter="urgent" type="button">Regar hoje / Atrasadas</button>
+      <button class="filter-btn" data-filter="ok" type="button">Em dia</button>
+    </div>
+
+    <main id="plantList" class="plant-list"></main>
+
+    <footer class="storage-footer">
+      <span>Dados salvos automaticamente neste dispositivo</span>
+      <div class="storage-controls">
+        <button id="exportBtn" class="btn-ghost" type="button">Exportar backup</button>
+        <button id="importBtn" class="btn-ghost" type="button">Importar backup</button>
+        <button id="clearBtn" class="btn-ghost danger" type="button">Limpar tudo</button>
+        <input id="importInput" type="file" accept="application/json" hidden />
+      </div>
+    </footer>
+
+    <div id="statusBar" class="status-bar" role="status" aria-live="polite"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "minhas_plantas_rega_v1";
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+    let plants = loadPlants();
+    let currentFilter = "all";
+    let statusTimer = null;
+
+    const plantForm = document.getElementById("plantForm");
+    const plantNameInput = document.getElementById("plantName");
+    const plantLocationInput = document.getElementById("plantLocation");
+    const plantIntervalInput = document.getElementById("plantInterval");
+    const plantLastWateredInput = document.getElementById("plantLastWatered");
+    const plantListEl = document.getElementById("plantList");
+    const notifBtn = document.getElementById("notifBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const importBtn = document.getElementById("importBtn");
+    const importInput = document.getElementById("importInput");
+    const clearBtn = document.getElementById("clearBtn");
+    const statusBar = document.getElementById("statusBar");
+
+    plantLastWateredInput.value = todayISO();
+    plantLastWateredInput.max = todayISO();
+
+    function startOfDay(date) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function todayISO() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function parseLocalDate(isoDate) {
+      const [y, m, d] = isoDate.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function formatDateBR(isoDate) {
+      return parseLocalDate(isoDate).toLocaleDateString("pt-BR");
+    }
+
+    function generateId() {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function showStatus(message, isConfirm = false, onConfirm = null) {
+      clearTimeout(statusTimer);
+      statusBar.className = "status-bar visible" + (isConfirm ? " confirm-mode" : "");
+      statusBar.innerHTML = "";
+
+      const textSpan = document.createElement("span");
+      textSpan.textContent = message;
+      statusBar.appendChild(textSpan);
+
+      if (isConfirm && typeof onConfirm === "function") {
+        const actions = document.createElement("div");
+        actions.className = "status-bar-actions";
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.type = "button";
+        confirmBtn.className = "btn-ghost danger";
+        confirmBtn.textContent = "Confirmar exclusão";
+        confirmBtn.onclick = () => {
+          onConfirm();
+          hideStatus();
+        };
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "btn-ghost";
+        cancelBtn.textContent = "Cancelar";
+        cancelBtn.onclick = hideStatus;
+
+        actions.append(confirmBtn, cancelBtn);
+        statusBar.appendChild(actions);
+      } else {
+        statusTimer = setTimeout(hideStatus, 3500);
+      }
+    }
+
+    function hideStatus() {
+      statusBar.className = "status-bar";
+      statusBar.innerHTML = "";
+    }
+
+    function getWaterStatus(plant) {
+      const lastWatered = startOfDay(parseLocalDate(plant.lastWatered));
+      const nextWaterDate = new Date(lastWatered.getTime() + plant.intervalDays * MS_PER_DAY);
+      const today = startOfDay(new Date());
+      const diffDays = Math.round((nextWaterDate - today) / MS_PER_DAY);
+
+      if (diffDays < 0) {
+        return {
+          code: "overdue",
+          diffDays,
+          badgeText: `Atrasada há ${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? "dia" : "dias"}`,
+          nextDateStr: nextWaterDate.toLocaleDateString("pt-BR")
+        };
+      }
+      if (diffDays === 0) {
+        return {
+          code: "today",
+          diffDays: 0,
+          badgeText: "Regar hoje",
+          nextDateStr: nextWaterDate.toLocaleDateString("pt-BR")
+        };
+      }
+      return {
+        code: "ok",
+        diffDays,
+        badgeText: `Regar em ${diffDays} ${diffDays === 1 ? "dia" : "dias"}`,
+        nextDateStr: nextWaterDate.toLocaleDateString("pt-BR")
+      };
+    }
+
+    function loadPlants() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(
+          (item) =>
+            item &&
+            typeof item.id === "string" &&
+            typeof item.name === "string" &&
+            typeof item.location === "string" &&
+            typeof item.intervalDays === "number" &&
+            typeof item.lastWatered === "string"
+        );
+      } catch (e) {
+        console.error("Erro ao carregar plantas do localStorage:", e);
+        return [];
+      }
+    }
+
+    function savePlants() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(plants));
+      } catch (e) {
+        console.error("Erro ao salvar plantas no localStorage:", e);
+        showStatus("Não foi possível salvar no armazenamento local do navegador.");
+      }
+    }
+
+    function waterPlant(id) {
+      plants = plants.map((p) =>
+        p.id === id ? { ...p, lastWatered: todayISO() } : p
+      );
+      savePlants();
+      render();
+      showStatus("Rega registrada para hoje.");
+    }
+
+    function deletePlant(id) {
+      plants = plants.filter((p) => p.id !== id);
+      savePlants();
+      render();
+      showStatus("Planta removida.");
+    }
+
+    function render() {
+      const enriched = plants.map((plant) => ({
+        ...plant,
+        status: getWaterStatus(plant)
+      }));
+
+      enriched.sort((a, b) => a.status.diffDays - b.status.diffDays);
+
+      const urgentCount = enriched.filter((p) => p.status.code !== "ok").length;
+      const okCount = enriched.filter((p) => p.status.code === "ok").length;
+
+      document.getElementById("statUrgent").textContent = urgentCount;
+      document.getElementById("statOk").textContent = okCount;
+      document.getElementById("statTotal").textContent = enriched.length;
+
+      const filtered = enriched.filter((p) => {
+        if (currentFilter === "urgent") return p.status.code !== "ok";
+        if (currentFilter === "ok") return p.status.code === "ok";
+        return true;
+      });
+
+      if (plants.length === 0) {
+        plantListEl.innerHTML = `
+          <div class="empty-state">
+            <strong>Nenhuma planta cadastrada ainda</strong>
+            Adicione sua primeira planta acima para começar o acompanhamento.
+          </div>
+        `;
+        return;
+      }
+
+      if (filtered.length === 0) {
+        plantListEl.innerHTML = `
+          <div class="empty-state">
+            Nenhuma planta encontrada neste filtro.
+          </div>
+        `;
+        return;
+      }
+
+      plantListEl.innerHTML = filtered
+        .map((plant) => {
+          const cardClass =
+            plant.status.code === "overdue"
+              ? "plant-card overdue"
+              : plant.status.code === "today"
+              ? "plant-card due-today"
+              : "plant-card";
+
+          const badgeClass =
+            plant.status.code === "overdue"
+              ? "badge overdue"
+              : plant.status.code === "today"
+              ? "badge today"
+              : "badge ok";
+
+          return `
+            <article class="${cardClass}">
+              <div class="plant-info">
+                <h3>${escapeHTML(plant.name)}</h3>
+                <div class="plant-meta">
+                  <span class="${badgeClass}">${plant.status.badgeText}</span>
+                  <span>📍 ${escapeHTML(plant.location)}</span>
+                  <span>🔁 A cada ${plant.intervalDays}d</span>
+                  <span>💧 Última: ${formatDateBR(plant.lastWatered)}</span>
+                </div>
+              </div>
+              <div class="plant-actions">
+                <button class="btn-water" type="button" onclick="waterPlant('${plant.id}')">
+                  Reguei hoje
+                </button>
+                <button class="btn-delete" type="button" onclick="deletePlant('${plant.id}')" title="Remover planta">
+                  ✕
+                </button>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function escapeHTML(str) {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    plantForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = plantNameInput.value.trim();
+      const location = plantLocationInput.value;
+      const intervalDays = parseInt(plantIntervalInput.value, 10);
+      const lastWatered = plantLastWateredInput.value || todayISO();
+
+      if (!name || isNaN(intervalDays) || intervalDays < 1) return;
+
+      plants.push({
+        id: generateId(),
+        name,
+        location,
+        intervalDays,
+        lastWatered
+      });
+
+      savePlants();
+      render();
+      plantNameInput.value = "";
+      plantLastWateredInput.value = todayISO();
+      plantNameInput.focus();
+      showStatus(`"${name}" adicionada com sucesso.`);
+    });
+
+    document.querySelectorAll(".filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    exportBtn.addEventListener("click", () => {
+      if (plants.length === 0) {
+        showStatus("Não há plantas cadastradas para exportar.");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(plants, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `minhas-plantas-${todayISO()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus("Arquivo de backup baixado.");
+    });
+
+    importBtn.addEventListener("click", () => {
+      importInput.click();
+    });
+
+    importInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!Array.isArray(imported)) throw new Error("Formato inválido");
+
+          const validItems = imported
+            .filter(
+              (item) =>
+                item &&
+                typeof item.name === "string" &&
+                typeof item.location === "string" &&
+                typeof item.intervalDays === "number" &&
+                typeof item.lastWatered === "string"
+            )
+            .map((item) => ({
+              id: typeof item.id === "string" ? item.id : generateId(),
+              name: item.name.trim(),
+              location: item.location,
+              intervalDays: Math.max(1, Math.round(item.intervalDays)),
+              lastWatered: item.lastWatered
+            }));
+
+          if (validItems.length === 0) {
+            showStatus("Nenhuma planta válida encontrada no arquivo.");
+            return;
+          }
+
+          plants = validItems;
+          savePlants();
+          render();
+          showStatus(`${validItems.length} ${validItems.length === 1 ? "planta importada" : "plantas importadas"} com sucesso.`);
+        } catch {
+          showStatus("Arquivo JSON inválido. Verifique o arquivo selecionado.");
+        } finally {
+          importInput.value = "";
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (plants.length === 0) {
+        showStatus("A lista já está vazia.");
+        return;
+      }
+      showStatus("Deseja apagar todas as plantas salvas neste navegador?", true, () => {
+        plants = [];
+        savePlants();
+        render();
+        showStatus("Todos os dados foram apagados.");
+      });
+    });
+
+    function updateNotifButton() {
+      if (!("Notification" in window)) {
+        notifBtn.textContent = "Notificações não suportadas";
+        notifBtn.disabled = true;
+        return;
+      }
+      if (Notification.permission === "granted") {
+        notifBtn.textContent = "Notificações ativas ✓";
+      } else if (Notification.permission === "denied") {
+        notifBtn.textContent = "Notificações bloqueadas";
+      }
+    }
+
+    function sendPendingNotification() {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const pending = plants
+        .map((p) => ({ ...p, status: getWaterStatus(p) }))
+        .filter((p) => p.status.code !== "ok");
+
+      if (pending.length > 0) {
+        const names = pending.slice(0, 3).map((p) => p.name).join(", ");
+        const extra = pending.length > 3 ? ` e mais ${pending.length - 3}` : "";
+        new Notification("Hora de regar suas plantas!", {
+          body: `${names}${extra} ${pending.length === 1 ? "precisa" : "precisam"} de água.`
+        });
+      }
+    }
+
+    notifBtn.addEventListener("click", async () => {
+      if (!("Notification" in window)) return;
+      const permission = await Notification.requestPermission();
+      updateNotifButton();
+      if (permission === "granted") {
+        sendPendingNotification();
+      }
+    });
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === STORAGE_KEY) {
+        plants = loadPlants();
+        render();
+      }
+    });
+
+    updateNotifButton();
+    render();
+    if ("Notification" in window && Notification.permission === "granted") {
+      sendPendingNotification();
+    }
+  </script>
+</body>
+</html>
